@@ -1,0 +1,4 @@
+{
+  "bach/*.py": {"type": "core", "alternate": "tests/unit/test_{}.py"},
+  "tests/unit/test_*.py": {"alternate": "bach/{}.py"},
+}

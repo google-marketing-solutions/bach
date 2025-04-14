@@ -1,0 +1,12 @@
+tags
+*.pyc
+__pycache__
+google-ads*.yaml
+*eggs
+*egg-info
+.tox
+.mypy_cache
+build
+dist
+.coverage
+.python-version
