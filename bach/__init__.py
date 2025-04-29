@@ -14,7 +14,11 @@
 
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
-"""Defines simplified imports."""
+"""Easy task management in Google Ads.
+
+bach provides an easy to use set of abstractions to simplify
+developing Google Ads solutions related to Google Ads management.
+"""
 
 from __future__ import annotations
 
@@ -23,3 +27,5 @@ from bach._bach import Bach
 __all__ = [
   'Bach',
 ]
+
+__version__ = '0.0.1'
