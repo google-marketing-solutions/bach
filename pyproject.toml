@@ -15,7 +15,7 @@ dependencies = [
   "google-ads-api-report-fetcher[pandas]",
   "croniter",
   "sqlalchemy>2",
-  "garf_core",
+  "garf_executors",
   "garf_youtube_data_api",
 ]
 classifiers = [
@@ -30,6 +30,10 @@ server = [
 all = [
   "bach[server]"
 ]
+[project.entry-points.bach_actors]
+placement_performance = "bach.plugins.exclusions.placement_excluder"
+search_term_performance = "bach.plugins.exclusions.search_term_excluder"
+
 [options.extras_require]
 test =  [
   "pytest",

@@ -16,10 +16,10 @@
 
 from __future__ import annotations
 
-from bach.plugins.placement_exclusion.placement_excluder import (
+from bach.plugins.exclusions.placement_excluder import (
   PlacementExclusionActor,
 )
-from bach.plugins.placement_exclusion.search_term_excluder import (
+from bach.plugins.exclusions.search_term_excluder import (
   SearchTermExclusionActor,
 )
 

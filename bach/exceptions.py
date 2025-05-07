@@ -12,22 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=C0330, g-bad-import-order, g-multiple-import
+"""Common Bach exceptions."""
 
-"""Easy task management in Google Ads.
 
-bach provides an easy to use set of abstractions to simplify
-developing Google Ads solutions related to Google Ads management.
-"""
-
-from __future__ import annotations
-
-from bach._bach import Bach
-from bach.exceptions import BachError
-
-__all__ = [
-  'Bach',
-  'BachError',
-]
-
-__version__ = '0.0.1'
+class BachError(Exception):
+  """Base Bach error."""

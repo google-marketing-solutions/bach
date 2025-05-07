@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Sequence
 
 import gaarf
@@ -37,7 +36,7 @@ from bach import (
 
 
 class Bach:
-  def __init__(self, repo) -> None:
+  def __init__(self, repo=None) -> None:
     """Initializes Bach."""
     self.repo = repo
     self._rules = []
@@ -76,9 +75,7 @@ class Bach:
     return self
 
   def with_actor(self, actor: api_actors.Actor, /, **kwargs: str) -> Self:
-    client = gaarf.GoogleAdsApiClient(
-      path_to_config=os.getenv('GOOGLE_ADS_YAML_PATH'),
-    ).client
+    client = gaarf.GoogleAdsApiClient().client
     self.actor = actor(client, **kwargs)
     return self
 
@@ -113,9 +110,7 @@ class Bach:
     if self._fetcher:
       return self._fetcher.fetch(self._accounts)
     self._report = gaarf.AdsReportFetcher(
-      api_client=gaarf.GoogleAdsApiClient(
-        path_to_config=os.getenv('GOOGLE_ADS_YAML_PATH')
-      )
+      api_client=gaarf.GoogleAdsApiClient()
     ).fetch(
       query_specification=query or self._query,
       customer_ids=self._accounts,
@@ -156,7 +151,10 @@ class Bach:
     return self
 
   def add_notify(
-    self, notification_channel: notifications_channel.NotificationChannel
+    self,
+    notification_channel: type[
+      notifications_channel.NotificationChannel
+    ] = notifications_channel.Console(),
   ) -> Self:
     self._notification_channel = notification_channel
     return self

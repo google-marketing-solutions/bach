@@ -25,6 +25,15 @@ Consists of 3 elements:
 
 ## Usage
 
+
+### Run as a CLI tool
+
+```
+bach --area placement_performance --accounts YOUR_ACCOUNT --area.exclusion_level=AD_GROUP
+```
+
+### Use as a library
+
 1. Simple use case - use predefined queries.
 
 ```
