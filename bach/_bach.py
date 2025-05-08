@@ -86,6 +86,10 @@ class Bach:
       return self
     raise ValueError('Unknown type of query: ', type)
 
+  def with_query(self, query: queries.BachQuery) -> Self:
+    self._query = str(query)
+    return self
+
   def with_accounts(
     self, *accounts: Sequence[int], expand_mcc: bool = False
   ) -> Self:

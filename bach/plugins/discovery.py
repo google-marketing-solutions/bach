@@ -19,30 +19,37 @@
 import inspect
 from importlib.metadata import entry_points
 
-from bach import api_actors, exceptions
+from bach import api_actors, exceptions, queries
 
 
-def load_actor(actor_name: str) -> type[api_actors.Actor]:
+def load_actor(
+  actor_name: str,
+) -> tuple[type[queries.BachQuery], type[api_actors.Actor]]:
   """Locates actor with a specified name.
 
   Args:
     actor_name: Name of an actor to load.
 
   Returns:
-    Actor class.
+    Actor class and its corresponding query.
 
   Raises:
     BachError: If actor not found or cannot be loaded.
   """
   actors = entry_points(group='bach_actors')
   for actor in actors:
+    found_actor, found_query = None, None
     if actor.name != actor_name:
       continue
     try:
       actor_module = actor.load()
       for name, obj in inspect.getmembers(actor_module):
         if inspect.isclass(obj) and issubclass(obj, api_actors.Actor):
-          return getattr(actor_module, name)
+          found_actor = getattr(actor_module, name)
+        if inspect.isclass(obj) and issubclass(obj, queries.BachQuery):
+          found_query = getattr(actor_module, name)
+        if found_actor and found_query:
+          return found_query, found_actor
     except ModuleNotFoundError as e:
       raise exceptions.BachError(f'Failed to import actor {actor_name}') from e
   available_actors = ', '.join(sorted(actor.name for actor in actors))

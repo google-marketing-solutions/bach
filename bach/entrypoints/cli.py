@@ -55,11 +55,11 @@ def main():
     sys.exit()
 
   extra_parameters = garf_utils.ParamsParser(['area', 'notify']).parse(kwargs)
-  actor_type = discovery.load_actor(args.area)
+  query_builder, actor_type = discovery.load_actor(args.area)
   area_parameters = extra_parameters.get('area')
   piece = (
     bach.Bach()
-    .with_type(args.area)
+    .with_query(query_builder())
     .with_accounts(*args.accounts)
     .with_actor(actor_type, **area_parameters)
     .add_rules(args.rule)

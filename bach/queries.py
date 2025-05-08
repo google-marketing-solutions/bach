@@ -14,6 +14,13 @@
 
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
+from garf_core import base_query
+
+
+class BachQuery(base_query.BaseQuery):
+  """Interface for all queries."""
+
+
 DEFAULT_QUERIES: dict[str, str] = {
   'campaign_performance': """SELECT
           campaign.id AS campaign_id,
