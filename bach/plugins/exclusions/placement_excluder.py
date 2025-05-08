@@ -108,6 +108,7 @@ class PlacementPerformance(base_excluder.ExcludableEntity):
     end_date: str = _END_DATE.strftime('%Y-%m-%d'),
     metrics: dict[str, str] | None = None,
     filters: dict[str, str] | None = None,
+    dimensions: set[str] | None = None,
     limit: int | None = 0,
   ):
     """Creates Garf query for fetching placements data.
@@ -121,6 +122,7 @@ class PlacementPerformance(base_excluder.ExcludableEntity):
       end_date: Start_date of the period.
       metrics: Metrics to be fetched.
       filters: Filters to be applied during fetching.
+      dimensions: Dimensions to be fetched.
       limit: Number of rows to return in response.
 
     Raises:
@@ -167,7 +169,13 @@ class PlacementPerformance(base_excluder.ExcludableEntity):
       metrics = {
         'metrics.clicks AS clicks',
       }
-    if limit and (limit := int(limit)):
+    if dimensions:
+      self.extra_dimensions = (
+        ',\n'.join(dimensions)
+        if len(dimensions) > 1
+        else f'{dimensions.pop()},\n'
+      )
+    elif limit and (limit := int(limit)):
       metrics.update(self._add_extra_metrics())
       self.extra_dimensions = self._add_extra_dimensions()
     else:
@@ -207,46 +215,3 @@ class PlacementPerformance(base_excluder.ExcludableEntity):
             {self.placement_level_granularity}.{self.parent_url} AS base_url,
             {self.placement_level_granularity}.target_url AS url,
             """
-
-  def validate_dates(self, start_date: str, end_date: str) -> None:
-    """Checks whether provides start and end dates are valid.
-
-    Args:
-      start_date: Date in "YYYY-MM-DD" format.
-      end_date: Date in "YYYY-MM-DD" format.
-
-    Raises:
-      ValueError:
-        if start or end_date have incorrect format or start_date greater
-        than end_date.
-    """
-    if not self.is_valid_date(start_date):
-      raise ValueError(f'Invalid start_date: {start_date}')
-
-    if not self.is_valid_date(end_date):
-      raise ValueError(f'Invalid end_date: {end_date}')
-
-    if datetime.datetime.strptime(
-      start_date, '%Y-%m-%d'
-    ) > datetime.datetime.strptime(end_date, '%Y-%m-%d'):
-      raise ValueError(
-        f'start_date cannot be greater than end_date: {start_date} > {end_date}'
-      )
-
-  def is_valid_date(self, date_string: str) -> bool:
-    """Validates date.
-
-    Args:
-      date_string: Date to be validated.
-
-    Returns:
-      Whether or not the date is a string in "YYYY-MM-DD" format.
-
-    Raises:
-      ValueError: If string format is incorrect.
-    """
-    try:
-      datetime.datetime.strptime(date_string, '%Y-%m-%d')
-      return True
-    except ValueError:
-      return False
