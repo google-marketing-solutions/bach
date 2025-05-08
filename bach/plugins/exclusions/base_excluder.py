@@ -14,6 +14,8 @@
 
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
+"""Common functionality for all exclusion plugins."""
+
 import functools
 from collections.abc import Sequence
 from copy import deepcopy
@@ -23,9 +25,11 @@ from garf_core import report as garf_report
 from bach import api_actors
 
 
-class SearchTermExclusionHandler(api_actors.OperationHandler):
+class BaseExclusionHandler(api_actors.OperationHandler):
+  """Specifies common mutate operations for exclusions."""
+
   def __init__(self, client, exclusion_level: str) -> None:
-    """Initializes SearchTermExclusionHandler."""
+    """Initializes BaseExclusionHandler."""
     self.client = client
     self.exclusion_level = exclusion_level
 
@@ -47,22 +51,28 @@ class SearchTermExclusionHandler(api_actors.OperationHandler):
     return None
 
 
-class SearchTermExclusionActor(api_actors.Actor):
+class BaseExclusionActor(api_actors.Actor):
+  """Specifies common functionality of performing exclusions from Google Ads.
+
+  Concrete excluders should inherit from this class and overwrite
+  `_setup_criterion` method.
+  """
+
   def __init__(
     self,
     client,
     exclusion_level: str,
     handlers: Sequence[type(api_actors.OperationHandler)] = (
-      SearchTermExclusionHandler,
+      BaseExclusionHandler,
     ),
   ) -> None:
-    """Initializes SearchExclusionActor."""
+    """Initializes BaseExclusionActor."""
     super().__init__(handlers, exclusion_level=exclusion_level, client=client)
     self.client = client
     self.exclusion_level = exclusion_level
 
   @functools.cached_property
-  def properties(self) -> dict:
+  def properties(self):
     return {
       'AD_GROUP': {
         'criterion_operation': self.client.get_type(
@@ -91,10 +101,13 @@ class SearchTermExclusionActor(api_actors.Actor):
       },
     }
 
-  def _create_placement_operation(
-    self,
-    placement_info: garf_report.GarfRow,
-    placement_exclusion_lists: dict[str, str],
+  def _setup_criterion(
+    self, entity_criterion, row: garf_report.GarfRow
+  ) -> None:
+    raise NotImplementedError
+
+  def _create_mutate_operation(
+    self, row: garf_report.GarfRow, **kwargs: str
   ) -> tuple[api_actors.OperationHandler, api_actors.MutateOperation]:
     """Create exclusion operation for a single placement."""
     entity_criterion = (
@@ -102,20 +115,14 @@ class SearchTermExclusionActor(api_actors.Actor):
       .get('criterion_operation')
       .create
     )
-    entity_criterion.negative = True
-    entity_criterion.keyword.text = placement_info.search_term
-    entity_criterion.keyword.match_type = (
-      self.client.enums.KeywordMatchTypeEnum.EXACT
-    )
+    self._setup_criterion(entity_criterion, row)
     if self.exclusion_level == 'AD_GROUP':
       entity_criterion.ad_group = (
         self.properties.get(self.exclusion_level)
         .get('criterion_service')
         .ad_group_path(
-          placement_info.customer_id,
-          placement_info.get(
-            self.properties.get(self.exclusion_level).get('entity_id')
-          ),
+          row.customer_id,
+          row.get(self.properties.get(self.exclusion_level).get('entity_id')),
         )
       )
     elif self.exclusion_level == 'CAMPAIGN':
@@ -123,18 +130,16 @@ class SearchTermExclusionActor(api_actors.Actor):
         self.properties.get(self.exclusion_level)
         .get('criterion_service')
         .campaign_path(
-          placement_info.customer_id,
-          placement_info.get(
-            self.properties.get(self.exclusion_level).get('entity_id')
-          ),
+          row.customer_id,
+          row.get(self.properties.get(self.exclusion_level).get('entity_id')),
         )
       )
     operation = deepcopy(
       self.properties.get(self.exclusion_level).get('criterion_operation')
     )
     return (
-      SearchTermExclusionHandler,
+      BaseExclusionHandler,
       api_actors.MutateOperation(
-        customer_id=placement_info.customer_id, operation=operation
+        customer_id=row.customer_id, operation=operation
       ),
     )

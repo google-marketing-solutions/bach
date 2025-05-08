@@ -95,21 +95,18 @@ class Actor(abc.ABC):
   def _prepare_mutate_operations(
     self,
     report: garf_report.GarfReport,
-    placement_exclusion_lists: dict[str, str] | None = None,
   ) -> dict[OperationHandler, dict[int, Sequence[MutateOperation]]]:
     """Defines mapping between customer_id and its mutate operations."""
     handler_operations: dict = collections.defaultdict(
       lambda: collections.defaultdict(list)
     )
     for row in report:
-      handler, operation = self._create_placement_operation(
-        row, placement_exclusion_lists
-      )
+      handler, operation = self._create_mutate_operation(row)
       handler_operations[handler][row.customer_id].append(operation)
     return handler_operations
 
   @abc.abstractmethod
-  def _create_placement_operation(
+  def _create_mutate_operation(
     self, row: garf_report.GarfRow, **kwargs: str
   ) -> tuple[OperationHandler, MutateOperation]:
     """Create mutate operation for a single entity."""

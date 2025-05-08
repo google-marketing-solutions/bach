@@ -40,6 +40,9 @@ DEFAULT_QUERIES: dict[str, str] = {
     """,
   'keyword_performance': """
     SELECT
+      customer.id AS customer_id,
+      campaign.id AS campaign_id,
+      ad_group.id AS ad_group_id,
       ad_group_criterion.keyword.text AS keyword,
       metrics.clicks AS clicks
     FROM keyword_view

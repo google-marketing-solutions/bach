@@ -14,16 +14,23 @@
 
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
-from __future__ import annotations
+"""Performance keyword exclusions from Google Ads."""
 
-from bach.plugins.exclusions.keyword_excluder import (
-  KeywordExclusionActor,
-)
-from bach.plugins.exclusions.placement_excluder import (
-  PlacementExclusionActor,
-)
+from garf_core import report as garf_report
 
-__all__ = [
-  'PlacementExclusionActor',
-  'KeywordExclusionActor',
-]
+from bach.plugins.exclusions import base_excluder
+
+
+class KeywordExclusionActor(base_excluder.BaseExclusionActor):
+  """Responsible for excluding keywords."""
+
+  def _setup_criterion(
+    self, entity_criterion, row: garf_report.GarfRow
+  ) -> None:
+    entity_criterion.negative = True
+    entity_criterion.keyword.text = (
+      row.search_term if hasattr(row, 'search_term') else row.keyword
+    )
+    entity_criterion.keyword.match_type = (
+      self.client.enums.KeywordMatchTypeEnum.EXACT
+    )

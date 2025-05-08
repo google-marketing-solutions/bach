@@ -32,7 +32,8 @@ all = [
 ]
 [project.entry-points.bach_actors]
 placement_performance = "bach.plugins.exclusions.placement_excluder"
-search_term_performance = "bach.plugins.exclusions.search_term_excluder"
+search_term_performance = "bach.plugins.exclusions.keyword_excluder"
+keyword_performance = "bach.plugins.exclusions.keyword_excluder"
 
 [options.extras_require]
 test =  [
