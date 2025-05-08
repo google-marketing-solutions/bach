@@ -14,11 +14,204 @@
 
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
+import datetime
+
+import pydantic
 from garf_core import base_query
+
+from bach import exclusion_specification
+
+METRICS = [
+  'clicks',
+  'impressions',
+  'cost',
+  'conversions',
+  'video_views',
+  'interactions',
+  'all_conversions',
+  'view_through_conversions',
+]
+
+COMPOUND_METRICS = {
+  'ctr': ['clicks', 'impressions'],
+  'avg_cpc': ['cost', 'clicks'],
+  'avg_cpm': ['cost', 'impressions'],
+  'avg_cpv': ['cost', 'video_views'],
+  'video_view_rate': ['video_views', 'impressions'],
+  'interaction_rate': ['interactions', 'clicks'],
+  'conversions_from_interactions_rate': ['conversions', 'interactions'],
+  'cost_per_conversion': ['cost', 'conversions'],
+  'cost_per_all_conversion': ['cost', 'all_conversions'],
+  'all_conversion_rate': ['all_conversions', 'interactions'],
+  'all_conversions_from_interactions_rate': [
+    'all_conversions',
+    'interactions',
+  ],
+}
+
+DIMENSIONS = {
+  'account_name': 'customer.descriptive_name',
+  'campaign_name': 'campaign.name',
+  'ad_group_name': 'ad_group.name',
+}
+
+
+class Period(pydantic.BaseModel):
+  start_date: str | None = None
+  end_date: str | None = None
+
+  def validate_dates(self) -> None:
+    """Checks whether provides start and end dates are valid.
+
+    Args:
+      start_date: Date in "YYYY-MM-DD" format.
+      end_date: Date in "YYYY-MM-DD" format.
+
+    Raises:
+      ValueError:
+        if start or end_date have incorrect format or start_date greater
+        than end_date.
+    """
+    if not self.is_valid_date(self.start_date):
+      raise ValueError(f'Invalid start_date: {self.start_date}')
+
+    if not self.is_valid_date(self.end_date):
+      raise ValueError(f'Invalid end_date: {self.end_date}')
+
+    if datetime.datetime.strptime(
+      self.start_date, '%Y-%m-%d'
+    ) > datetime.datetime.strptime(self.end_date, '%Y-%m-%d'):
+      raise ValueError(
+        f'start_date cannot be greater than end_date: {self.start_date} > {self.end_date}'
+      )
+
+  def is_valid_date(self, date_string: str) -> bool:
+    """Validates date.
+
+    Args:
+      date_string: Date to be validated.
+
+    Returns:
+      Whether or not the date is a string in "YYYY-MM-DD" format.
+
+    Raises:
+      ValueError: If string format is incorrect.
+    """
+    try:
+      datetime.datetime.strptime(date_string, '%Y-%m-%d')
+      return True
+    except ValueError:
+      return False
+
+
+class BachQueryParameters(pydantic.BaseModel):
+  metrics: set[str] | None = None
+  dimensions: set[str] | None = None
+  filters: set[str] | None = None
+  period: Period = Period()
+  limit: int | None = None
+
+
+def _stringify(fields: set[str]) -> str:
+  return ',\n'.join(fields) if len(fields) > 1 else f'{fields.pop()},\n'
 
 
 class BachQuery(base_query.BaseQuery):
   """Interface for all queries."""
+
+  _TODAY = datetime.datetime.today()
+  _START_DATE = _TODAY - datetime.timedelta(days=7)
+  _END_DATE = _TODAY - datetime.timedelta(days=1)
+
+  def __init__(self, parameters: BachQueryParameters | None = None) -> None:
+    self.parameters = parameters or BachQueryParameters()
+    self.default_metrics = 'metrics.clicks AS clicks'
+    self.default_dimensions = 'campaign.id AS campaign'
+
+  @property
+  def metrics(self) -> str:
+    if metrics := self.parameters.metrics:
+      return _stringify(metrics)
+    return ''
+
+  @property
+  def filters(self) -> str:
+    if filters := self.parameters.filters:
+      return ' AND '.join(filters)
+
+    return ''
+
+  @property
+  def dimensions(self) -> str:
+    if dimensions := self.parameters.dimensions:
+      return _stringify(dimensions)
+    if self.parameters.limit:
+      return self.default_dimensions + ',\n'
+    return ''
+
+  @property
+  def query_text(self) -> str:
+    return self.base_query_text.format(**self.__dict__)
+
+  def _build_query_part(self, spec) -> tuple[str, str] | None:
+    """Returns metrics and corresponding filters based on a specification."""
+    if spec.name in METRICS:
+      value = (
+        int(float(spec.value) * 1e6) if spec.name == 'cost' else spec.value
+      )
+      name = f'{spec.name}_micros' if spec.name == 'cost' else spec.name
+      return (
+        f'metrics.{name} {spec.operator} {value}',
+        self._build_metric(spec.name),
+      )
+    return None
+
+  def _build_metric(self, metric_name: str) -> str:
+    name = (
+      f'{metric_name}_micros / 1e6' if metric_name == 'cost' else metric_name
+    )
+    return f'metrics.{name} AS {metric_name}'
+
+  def build(
+    self,
+    rule: str,
+    limit: int | None = None,
+  ):
+    """Helper method for building query and fetching data from Ads API.
+
+    Args:
+      rule: Specification rule.
+      limit: Whether to fetch all data or only a subset.
+
+    Returns:
+      Report containing placement performance data.
+    """
+    metrics: set[str] = set()
+    filters: set[str] = set()
+    dimensions: set[str] = set()
+    if spec := exclusion_specification.ExclusionSpecification.from_expression(
+      rule
+    ):
+      ads_specs = spec.ads_specs_entries.specifications
+      for specs in ads_specs:
+        for spec in specs:
+          if compound_metrics := COMPOUND_METRICS.get(spec.name):
+            for metric in compound_metrics:
+              metrics.add(self._build_metric(metric))
+          elif info := self._build_query_part(spec):
+            ads_filter, ads_metric = info
+            filters.add(ads_filter)
+            metrics.add(ads_metric)
+          elif dimension := DIMENSIONS.get(spec.name):
+            dimensions.add(f'{dimension} AS {spec.name}')
+
+    self.__init__(
+      limit=limit,
+      metrics=metrics,
+      filters=filters,
+      dimensions=dimensions,
+    )
+    return str(self)
 
 
 DEFAULT_QUERIES: dict[str, str] = {
