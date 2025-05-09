@@ -46,7 +46,11 @@ def load_actor(
       for name, obj in inspect.getmembers(actor_module):
         if inspect.isclass(obj) and issubclass(obj, api_actors.Actor):
           found_actor = getattr(actor_module, name)
-        if inspect.isclass(obj) and issubclass(obj, queries.BachQuery):
+        if (
+          inspect.isclass(obj)
+          and issubclass(obj, queries.BachQuery)
+          and hasattr(obj, 'name')
+        ):
           found_query = getattr(actor_module, name)
         if found_actor and found_query:
           return found_query, found_actor
