@@ -22,7 +22,6 @@ import sys
 from garf_executors.entrypoints import utils as garf_utils
 
 import bach
-from bach.plugins import discovery
 
 
 def main():
@@ -55,23 +54,14 @@ def main():
     sys.exit()
 
   extra_parameters = garf_utils.ParamsParser(['area', 'notify']).parse(kwargs)
-  query_builder, actor_type = discovery.load_actor(args.area)
-  area_parameters = extra_parameters.get('area')
-  piece = (
-    bach.Bach()
-    .with_query(query_builder())
-    .with_accounts(*args.accounts)
-    .with_actor(actor_type, **area_parameters)
-    .add_rules(args.rule)
-    .add_action()
+  request = bach.BachRequest(
+    rules=args.rule,
+    accounts=args.accounts,
+    area=args.area,
+    area_parameters=extra_parameters.get('area'),
+    notification_parameters=extra_parameters.get('notify'),
   )
-  if args.notify:
-    notification_parameters = extra_parameters.get('notify')
-    piece.add_notify(**notification_parameters)
-  else:
-    piece.add_notify()
-
-  piece.run()
+  bach.Bach().play(request)
 
 
 if __name__ == '__main__':

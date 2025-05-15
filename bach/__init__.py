@@ -22,11 +22,12 @@ developing Google Ads solutions related to Google Ads management.
 
 from __future__ import annotations
 
-from bach._bach import Bach
+from bach._bach import Bach, BachRequest
 from bach.exceptions import BachError
 
 __all__ = [
   'Bach',
+  'BachRequest',
   'BachError',
 ]
 

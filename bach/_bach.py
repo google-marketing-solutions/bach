@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import gaarf
+import pydantic
 from typing_extensions import Self
 
 from bach import (
@@ -33,6 +34,20 @@ from bach import (
   rules_parser,
   tasks,
 )
+from bach.plugins import discovery
+
+
+class BachRequest(pydantic.BaseModel):
+  area: str
+  rule: str
+  accounts: Sequence[str]
+  area_parameters: dict[str, str] | None = None
+  notify: bool = False
+  notification_parameters: dict[str, str] | None = None
+
+
+class BachOperationResponse(pydantic.BaseModel):
+  job_id: str
 
 
 class Bach:
@@ -66,6 +81,23 @@ class Bach:
       .action()
       .notify()
     )
+
+  def play(self, request: BachRequest) -> BachOperationResponse:
+    """Executes Bach request and returns it as an operation."""
+    query_builder, actor_type = discovery.load_actor(request.area)
+    (
+      self.with_query(query_builder().build(request.rule))
+      .with_accounts(*request.accounts)
+      .with_actor(actor_type, **request.area_parameters)
+      .add_rules(request.rule)
+      .add_action()
+    )
+    if request.notify:
+      self.add_notify(**request.notification_parameters)
+    else:
+      self.add_notify()
+    self.run()
+    return BachOperationResponse(job_id='')
 
   def run(self) -> None:
     self.fetch().apply().action().notify()

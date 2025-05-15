@@ -14,39 +14,37 @@
 
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
-from collections.abc import Sequence
 
-import dotenv
+import pathlib
+
 import fastapi
-from typing_extensions import TypedDict
+from pydantic_settings import BaseSettings
 
-from bach import Bach
+import bach
 
-dotenv.load_dotenv()
+
+class BachServerSettings(BaseSettings):
+  """Specifies environmental variables for Bach.
+
+  Ensure that mandatory variables are exposed via
+  export ENV_VARIABLE_NAME=VALUE.
+
+  Attributes:
+    media_tagging_db_url: Connection string to DB with tagging results.
+  """
+
+  google_ads_configuration_file_path: str = str(
+    pathlib.Path.home() / 'google-ads.yaml'
+  )
+
 
 app = fastapi.FastAPI()
 
-bach = Bach()
-
-
-class BachPostRequest(TypedDict):
-  """Specifies structure of request for interacting with Bach."""
-
-  type: str
-  accounts: Sequence[str]
-
 
 @app.post('/')
-def interact(
-  request: BachPostRequest = fastapi.Body(embed=True),
+def play(
+  request: bach.BachRequest,
 ) -> str:
   """Interacts with Bach."""
-  (
-    bach.with_type(request.get('type'))
-    .with_accounts(*request.get('accounts'), expand_mcc=True)
-    .add_rules('clicks > 1')
-    .fetch()
-    .apply()
-    .notify()
-  )
+  bach.Bach().play(request)
   return 'success'
