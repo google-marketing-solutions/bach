@@ -10,13 +10,13 @@ authors = [
 ]
 license = {text = "Apache 2.0"}
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
   "google-ads-api-report-fetcher[pandas]",
   "croniter",
-  "sqlalchemy>2",
   "garf_executors",
   "garf_youtube_data_api",
+  "pydantic",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -24,11 +24,14 @@ classifiers = [
 ]
 dynamic = ["version"]
 [project.optional-dependencies]
+persist = [
+  "sqlalchemy>2",
+]
 server = [
   "fastapi[standard]"
 ]
 all = [
-  "bach[server]"
+  "bach[persist,server]"
 ]
 [project.entry-points.bach_actors]
 placement_performance = "bach.plugins.exclusions.placement_excluder"
