@@ -29,7 +29,7 @@ from bach import (
   notifications_channel,
   parsers,
   plugins,
-  queries,
+  query,
   report_fetcher,
   rules_parser,
   tasks,
@@ -112,13 +112,13 @@ class Bach:
     return self
 
   def with_type(self, type: str = 'campaign_performance') -> Self:
-    if query := queries.DEFAULT_QUERIES.get(type):
+    if query := query.DEFAULT_QUERIES.get(type):
       self.type = type
       self._query = query
       return self
     raise ValueError('Unknown type of query: ', type)
 
-  def with_query(self, query: queries.BachQuery) -> Self:
+  def with_query(self, query: query.BachQuery) -> Self:
     self._query = str(query)
     return self
 

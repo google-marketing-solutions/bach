@@ -22,7 +22,7 @@ from copy import deepcopy
 
 from garf_core import report as garf_report
 
-from bach import api_actors, queries
+from bach import api_actors, query
 
 
 class BaseExclusionHandler(api_actors.OperationHandler):
@@ -145,7 +145,7 @@ class BaseExclusionActor(api_actors.Actor):
     )
 
 
-class ExcludableEntity(queries.BachQuery):
+class ExcludableEntity(query.BachQuery):
   """Specifies fields that form an entity that can be excluded.
 
   Attributes:

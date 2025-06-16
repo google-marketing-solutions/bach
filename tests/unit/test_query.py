@@ -13,19 +13,19 @@
 # limitations under the License.
 
 
-from bach import queries
+from bach import query
 
 
 class TestBachQuery:
   def test_init_returns_empty_attributes(self):
-    test_query = queries.BachQuery()
+    test_query = query.BachQuery()
 
     assert test_query.metrics == ''
     assert test_query.dimensions == ''
     assert test_query.filters == ''
 
   def test_init_returns_nonempty_attributes(self):
-    parameters = queries.BachQueryParameters(
+    parameters = query.BachQueryParameters(
       metrics={
         'metrics.clicks AS clicks',
       },
@@ -34,22 +34,19 @@ class TestBachQuery:
       },
       filters={
         'metrics.clicks > 0',
-        'metrics.impressions > 0',
       },
     )
-    test_query = queries.BachQuery(parameters)
+    test_query = query.BachQuery(parameters)
 
     assert test_query.metrics == 'metrics.clicks AS clicks,\n'
     assert test_query.dimensions == 'campaign.id AS campaign_id,\n'
-    assert (
-      test_query.filters == 'metrics.clicks > 0 AND metrics.impressions > 0'
-    )
+    assert test_query.filters == 'metrics.clicks > 0'
 
   def test_init_returns_default_attributes(self):
-    parameters = queries.BachQueryParameters(
+    parameters = query.BachQueryParameters(
       limit=10,
     )
-    test_query = queries.BachQuery(parameters)
+    test_query = query.BachQuery(parameters)
 
     assert test_query.dimensions == 'campaign.id AS campaign,\n'
     assert test_query.metrics == ''
