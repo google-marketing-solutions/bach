@@ -17,7 +17,7 @@
 """Module for building and applying various specification.
 
 ExclusionSpecification holds an expression is checked against a particular
-GaarfRow object to verify whether or not this expression is true.
+GarfRow object to verify whether or not this expression is true.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import math
 import re
 from collections.abc import Sequence
 
-from gaarf import report
+from garf_core import report
 
 from bach import rules_parser
 
@@ -47,10 +47,11 @@ class BaseExclusionSpecificationEntry:
   """
 
   def __init__(self, expression: str, rule_type: str) -> None:
-    """Constructor for the class.
+    """Initializes BaseExclusionSpecificationEntry.
 
     Args:
       expression: Exclusion expression in a form of `name > value`.
+      rule_type: Type applicable to the rule.
     """
     elements = [
       element.strip() for element in expression.split(' ', maxsplit=2)
@@ -83,11 +84,11 @@ class BaseExclusionSpecificationEntry:
       self.value = self.__raw_value
     self.rule_type = rule_type
 
-  def is_satisfied_by(self, entity_info: report.GaarfRow) -> tuple[bool, dict]:
+  def is_satisfied_by(self, entity_info: report.GarfRow) -> tuple[bool, dict]:
     """Verifies whether given entity satisfies stored expression.
 
     Args:
-      entity_info: GaarfRow object that contains entity data.
+      entity_info: GarfRow object that contains entity data.
 
     Returns:
       Tuple with results of evaluation and all necessary information on
@@ -106,7 +107,7 @@ class BaseExclusionSpecificationEntry:
       return self._check_regexp(entity_info)
     return self._eval_expression(entity_info)
 
-  def _check_regexp(self, entity: report.GaarfRow) -> bool:
+  def _check_regexp(self, entity: report.GarfRow) -> bool:
     if entity_element := getattr(entity, self.name):
       return bool(
         re.search(
@@ -117,7 +118,7 @@ class BaseExclusionSpecificationEntry:
       )
     return False
 
-  def _eval_expression(self, entity: report.GaarfRow) -> bool:
+  def _eval_expression(self, entity: report.GarfRow) -> bool:
     try:
       value = float(self.value)
     except ValueError:
@@ -211,10 +212,10 @@ class ExclusionSpecification:
 
   def apply_specifications(
     self,
-    entities: report.GaarfReport,
+    entities: report.GarfReport,
     include_reason: bool = True,
     include_matching_entity: bool = True,
-  ) -> report.GaarfReport:
+  ) -> report.GarfReport:
     """Gets placements that satisfy exclusion specifications entries.
 
     Args:
@@ -254,16 +255,16 @@ class ExclusionSpecification:
     desired_columns = entities.column_names + extra_columns
     with contextlib.suppress(ValueError):
       _ = desired_columns.pop(desired_columns.index('extra_info'))
-    return report.GaarfReport(
+    return report.GarfReport(
       results=to_be_excluded_placements,
       column_names=entities.column_names + extra_columns,
     )[desired_columns]
 
-  def satisfies(self, entity: report.GaarfRow) -> list[str]:
+  def satisfies(self, entity: report.GarfRow) -> list[str]:
     """Verifies whether a single entity satisfies the specifications.
 
     Args:
-      entity: GaarfRow object with placement data.
+      entity: GarfRow object with placement data.
 
     Returns:
       Rules that entity satisfies.

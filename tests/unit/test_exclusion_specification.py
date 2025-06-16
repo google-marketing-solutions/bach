@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
-from gaarf.report import GaarfReport
+from garf_core import report as garf_report
 
 from bach import exclusion_specification, rules_parser
 
@@ -133,7 +133,7 @@ class TestExclusionSpecificationEntry:
 
   @pytest.fixture
   def placements(self):
-    return GaarfReport(
+    return garf_report.GarfReport(
       results=[
         [
           'youtube_video',
@@ -198,7 +198,7 @@ class TestExclusionSpecificationEntry:
   def test_apply_specifications(
     self, sample_exclusion_specification, placements
   ):
-    expected_result = GaarfReport(
+    expected_result = garf_report.GarfReport(
       results=[
         [
           'youtube_video',
