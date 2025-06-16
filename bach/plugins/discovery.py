@@ -19,12 +19,12 @@
 import inspect
 from importlib.metadata import entry_points
 
-from bach import api_actors, exceptions, queries
+from bach import api_actors, exceptions, query
 
 
 def load_actor(
   actor_name: str,
-) -> tuple[type[queries.BachQuery], type[api_actors.Actor]]:
+) -> tuple[type[query.BachQuery], type[api_actors.Actor]]:
   """Locates actor with a specified name.
 
   Args:
@@ -48,7 +48,7 @@ def load_actor(
           found_actor = getattr(actor_module, name)
         if (
           inspect.isclass(obj)
-          and issubclass(obj, queries.BachQuery)
+          and issubclass(obj, query.BachQuery)
           and hasattr(obj, 'name')
         ):
           found_query = getattr(actor_module, name)
