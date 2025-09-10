@@ -18,7 +18,7 @@ from bach import query
 
 class TestBachQuery:
   def test_init_returns_without_filters(self):
-    parameters = query.BachQueryParameters(
+    test_query = query.BachQuery(
       resource='campaign',
       metrics=[
         'metrics.clicks AS clicks',
@@ -27,15 +27,13 @@ class TestBachQuery:
         'campaign.id AS campaign_id',
       ],
     )
-    test_query = query.BachQuery(parameters)
-
     assert test_query.query_text == (
       'SELECT campaign.id AS campaign_id, metrics.clicks AS clicks '
       'FROM campaign'
     )
 
   def test_init_returns_nonempty_attributes(self):
-    parameters = query.BachQueryParameters(
+    test_query = query.BachQuery(
       resource='campaign',
       metrics=[
         'metrics.clicks AS clicks',
@@ -47,7 +45,6 @@ class TestBachQuery:
         'metrics.clicks > 0',
       ],
     )
-    test_query = query.BachQuery(parameters)
 
     assert test_query.query_text == (
       'SELECT campaign.id AS campaign_id, metrics.clicks AS clicks '
@@ -55,7 +52,7 @@ class TestBachQuery:
     )
 
   def test_init_returns_multiple_attributes(self):
-    parameters = query.BachQueryParameters(
+    test_query = query.BachQuery(
       resource='campaign',
       metrics=[
         'metrics.clicks AS clicks',
@@ -71,7 +68,6 @@ class TestBachQuery:
       ],
       limit=10,
     )
-    test_query = query.BachQuery(parameters)
 
     assert test_query.query_text == (
       'SELECT campaign.id AS campaign_id, segments.date AS date, '
@@ -82,7 +78,7 @@ class TestBachQuery:
     )
 
   def test_init_returns_multiple_attributes_with_period(self):
-    parameters = query.BachQueryParameters(
+    test_query = query.BachQuery(
       resource='campaign',
       metrics=[
         'metrics.clicks AS clicks',
@@ -99,7 +95,6 @@ class TestBachQuery:
       period={'start_date': '2025-01-01', 'end_date': '2025-01-31'},
       limit=10,
     )
-    test_query = query.BachQuery(parameters)
 
     assert test_query.query_text == (
       'SELECT campaign.id AS campaign_id, segments.date AS date, '
@@ -111,7 +106,7 @@ class TestBachQuery:
     )
 
   def test_init_returns_multiple_attributes_with_sorts(self):
-    parameters = query.BachQueryParameters(
+    test_query = query.BachQuery(
       resource='campaign',
       metrics=[
         'metrics.clicks AS clicks',
@@ -129,7 +124,6 @@ class TestBachQuery:
       sorts='metrics.clicks',
       limit=10,
     )
-    test_query = query.BachQuery(parameters)
 
     assert test_query.query_text == (
       'SELECT campaign.id AS campaign_id, segments.date AS date, '

@@ -16,13 +16,13 @@
 
 """Performance placements exclusions from Google Ads."""
 
-import datetime
+from typing import ClassVar
 
 import pydantic
 from garf_core import report as garf_report
 
 from bach.plugins.exclusions import base_excluder
-from bach.query import BachQuery, BachQueryParameters, Period
+from bach.query import BachQuery, Period
 
 
 class PlacementExclusionActor(base_excluder.BaseExclusionActor):
@@ -60,8 +60,9 @@ class PlacementExclusionActor(base_excluder.BaseExclusionActor):
     return website_url.split('/')[0]
 
 
-class PlacementPerformance2(pydantic.BaseModel):
-  placement_level_granularity: str = 'group_placement_view'
+class PlacementPerformance(BachQuery):
+  name: ClassVar[str] = 'placement_performance'
+  resource: str = 'group_placement_view'
   placement_types: list[str] = [
     'WEBSITE',
     'YOUTUBE_VIDEO',
@@ -72,10 +73,6 @@ class PlacementPerformance2(pydantic.BaseModel):
   campaign_types: list[str] = ['DISPLAY', 'VIDEO', 'SEARCH', 'DEMAND_GEN']
   start_date: str = pydantic.Field(default='2025-01-01')
   end_date: str = pydantic.Field(default='2025-01-31')
-  metrics: list[str] | None = pydantic.Field(default_factory=list)
-  filters: list[str] | None = pydantic.Field(default_factory=list)
-  dimensions: list[str] | None = pydantic.Field(default_factory=list)
-  limit: int | None = 0
 
   @property
   def query(self) -> str:
@@ -83,8 +80,8 @@ class PlacementPerformance2(pydantic.BaseModel):
       'metrics.clicks > 0',
       'metrics.impressions > 0',
       'metrics.cost_micros > 0',
-      f'{self.placement_level_granularity}.placement_type IN ("WEBSITE")',
-      f'{self.placement_level_granularity}.target_url NOT IN ('
+      f'{self.resource}.placement_type IN ("WEBSITE")',
+      f'{self.resource}.target_url NOT IN ('
       '"youtube.com", "mail.google.com", "adsenseformobileapps.com")',
       'campaign.advertising_channel_type IN ("DISPLAY")',
     ]
@@ -94,23 +91,23 @@ class PlacementPerformance2(pydantic.BaseModel):
     ]
 
     common_dimensions = [
-      'customer.id AS customer_id',
-      'campaign.id AS campaign_id',
+      'customer.id',
+      'campaign.id',
       'campaign.advertising_channel_type AS campaign_type',
-      'ad_group.id AS ad_group_id',
-      f'{self.placement_level_granularity}.placement AS placement',
-      f'{self.placement_level_granularity}.placement_type AS placement_type',
-      f'{self.placement_level_granularity}.display_name AS name',
+      'ad_group.id',
+      f'{self.resource}.placement AS placement',
+      f'{self.resource}.placement_type AS placement_type',
+      f'{self.resource}.display_name AS name',
     ]
-    params = BachQueryParameters(
-      resource=self.placement_level_granularity,
+    params = BachQuery(
+      resource=self.resource,
       dimensions=common_dimensions + self.dimensions,
       metrics=common_metrics + self.metrics,
       filters=common_filters + self.filters,
       period=Period(start_date=self.start_date, end_date=self.end_date),
       limit=self.limit,
     )
-    return BachQuery(params).query_text
+    return params.query_text
 
 
 # class PlacementPerformance(base_excluder.ExcludableEntity):
@@ -131,16 +128,16 @@ class PlacementPerformance2(pydantic.BaseModel):
 #             campaign.advertising_channel_type AS campaign_type,
 #             ad_group.id AS ad_group_id,
 #             {extra_dimensions}
-#             {placement_level_granularity}.placement AS placement,
-#             {placement_level_granularity}.placement_type AS placement_type,
-#             {placement_level_granularity}.display_name AS name,
+#             {resource}.placement AS placement,
+#             {resource}.placement_type AS placement_type,
+#             {resource}.display_name AS name,
 #             {metrics}
-#         FROM {placement_level_granularity}
+#         FROM {resource}
 #         WHERE segments.date >= "{start_date}"
 #             AND segments.date <= "{end_date}"
-#             AND {placement_level_granularity}.placement_type IN
+#             AND {resource}.placement_type IN
 #                 ("{placement_types}")
-#             AND {placement_level_granularity}.target_url NOT IN (
+#             AND {resource}.target_url NOT IN (
 #                 "youtube.com", "mail.google.com", "adsenseformobileapps.com"
 #             )
 #             AND campaign.advertising_channel_type IN ("{campaign_types}")
@@ -153,7 +150,7 @@ class PlacementPerformance2(pydantic.BaseModel):
 #     self,
 #     placement_types: tuple[str, ...] | None = None,
 #     campaign_types: tuple[str, ...] | None = None,
-#     placement_level_granularity: str = 'group_placement_view',
+#     resource: str = 'group_placement_view',
 #     start_date: str = _START_DATE.strftime('%Y-%m-%d'),
 #     end_date: str = _END_DATE.strftime('%Y-%m-%d'),
 #     metrics: dict[str, str] | None = None,
@@ -167,7 +164,7 @@ class PlacementPerformance2(pydantic.BaseModel):
 #       placement_types: List of placement types that need to be fetched
 #         for exclusion.
 #       campaign_types: List of campaign types that need to be fetched.
-#       placement_level_granularity: API Resource to fetch data from.
+#       resource: API Resource to fetch data from.
 #       start_date: Start_date of the period.
 #       end_date: Start_date of the period.
 #       metrics: Metrics to be fetched.
@@ -177,7 +174,7 @@ class PlacementPerformance2(pydantic.BaseModel):
 
 #     Raises:
 #       ValueError:
-#         If campaign_type, placement_type or placement_level_granularity
+#         If campaign_type, placement_type or resource
 #         are incorrect.
 #     """
 #     if campaign_types:
@@ -197,7 +194,7 @@ class PlacementPerformance2(pydantic.BaseModel):
 #     else:
 #       self.placement_types = '","'.join(self._PLACEMENT_TYPES)
 
-#     if placement_level_granularity not in (
+#     if resource not in (
 #       'detail_placement_view',
 #       'group_placement_view',
 #     ):
@@ -205,14 +202,14 @@ class PlacementPerformance2(pydantic.BaseModel):
 #         "Only 'detail_placement_view' or 'group_placement_view' "
 #         'can be specified!'
 #       )
-#     self.placement_level_granularity = placement_level_granularity
+#     self.resource = resource
 
 #     self.validate_dates(start_date, end_date)
 #     self.start_date = start_date
 #     self.end_date = end_date
 #     self.parent_url = (
 #       'group_placement_target_url'
-#       if self.placement_level_granularity == 'detail_placement_view'
+#       if self.resource == 'detail_placement_view'
 #       else 'target_url'
 #     )
 #     if not metrics:
@@ -262,6 +259,6 @@ class PlacementPerformance2(pydantic.BaseModel):
 #             customer.descriptive_name AS account_name,
 #             campaign.name AS campaign_name,
 #             ad_group.name AS ad_group_name,
-#             {self.placement_level_granularity}.{self.parent_url} AS base_url,
-#             {self.placement_level_granularity}.target_url AS url,
+#             {self.resource}.{self.parent_url} AS base_url,
+#             {self.resource}.target_url AS url,
 #             """
