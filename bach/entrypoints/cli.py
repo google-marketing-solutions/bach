@@ -16,53 +16,44 @@
 
 """CLI entrypoint for running bach."""
 
-import argparse
 import sys
 
+import typer
 from garf_executors.entrypoints import utils as garf_utils
+from typing_extensions import Annotated
 
 import bach
 
+typer_app = typer.Typer()
 
-def main():
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--area', help='Type of Bach task to run')
-  parser.add_argument(
-    '--accounts',
-    nargs='+',
-    dest='accounts',
-    default=None,
-    help='Accounts to operate on',
-  )
-  parser.add_argument('--rule', default=None, help='Rule string')
-  parser.add_argument(
-    '--notify',
-    default=None,
-    help='Where to send notifications',
-  )
-  parser.add_argument(
-    '--version',
-    '-v',
-    dest='version',
-    action='store_true',
-    help='Version of bach CLI utility',
-  )
-  args, kwargs = parser.parse_known_args()
 
-  if args.version:
-    print(f'Bach version: {bach.__version__}')
-    sys.exit()
+@typer_app.command()
+def version() -> str:
+  print(f'Bach version: {bach.__version__}')
+  sys.exit()
 
-  extra_parameters = garf_utils.ParamsParser(['area', 'notify']).parse(kwargs)
+
+@typer_app.command(
+  context_settings={'allow_extra_args': True, 'ignore_unknown_options': True}
+)
+def run(
+  ctx: typer.Context,
+  area: Annotated[str, typer.Option(help='Type of Bach task to run')],
+  rule: Annotated[str, typer.Option(help='Rule string')],
+  accounts: Annotated[
+    str, typer.Option(help='Comma-separated accounts to operate on')
+  ],
+  notify: Annotated[
+    bool, typer.Option(help='Whether to send notifications')
+  ] = False,
+):
+  extra_parameters = garf_utils.ParamsParser(['area', 'notify']).parse(ctx.args)
   request = bach.BachRequest(
-    rules=args.rule,
-    accounts=args.accounts,
-    area=args.area,
+    rule=rule,
+    accounts=accounts.split(','),
+    area=area,
     area_parameters=extra_parameters.get('area'),
+    notify=notify,
     notification_parameters=extra_parameters.get('notify'),
   )
   bach.Bach().play(request)
-
-
-if __name__ == '__main__':
-  main()
