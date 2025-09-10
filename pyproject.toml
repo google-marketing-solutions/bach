@@ -17,6 +17,7 @@ dependencies = [
   "garf_executors",
   "garf_youtube_data_api",
   "pydantic",
+  "typer",
 ]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -29,7 +30,6 @@ persist = [
 ]
 server = [
   "fastapi[standard]",
-  "typer"
 ]
 all = [
   "bach[persist,server]"
@@ -50,5 +50,5 @@ testpaths = [
 ]
 
 [project.scripts]
-bach="bach.entrypoints.cli:main"
+bach="bach.entrypoints.cli:typer_app"
 bach-server="bach.entrypoints.server:typer_app"
