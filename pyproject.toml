@@ -28,7 +28,8 @@ persist = [
   "sqlalchemy>2",
 ]
 server = [
-  "fastapi[standard]"
+  "fastapi[standard]",
+  "typer"
 ]
 all = [
   "bach[persist,server]"
@@ -50,3 +51,4 @@ testpaths = [
 
 [project.scripts]
 bach="bach.entrypoints.cli:main"
+bach-server="bach.entrypoints.server:typer_app"
