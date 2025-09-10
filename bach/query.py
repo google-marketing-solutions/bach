@@ -15,6 +15,7 @@
 # pylint: disable=C0330, g-bad-import-order, g-multiple-import
 
 import datetime
+from typing import Sequence
 
 import pydantic
 from garf_core import base_query
@@ -103,29 +104,46 @@ class Period(pydantic.BaseModel):
     except ValueError:
       return False
 
+  def __bool__(self) -> bool:
+    return bool(self.start_date and self.end_date)
+
+  def __str__(self) -> str:
+    return f"'{self.start_date}' AND '{self.end_date}'"
+
 
 class BachQueryParameters(pydantic.BaseModel):
-  metrics: set[str] | None = None
-  dimensions: set[str] | None = None
-  filters: set[str] | None = None
+  resource: str
+  metrics: Sequence[str] | None = None
+  dimensions: Sequence[str] | None = None
+  filters: Sequence[str] | None = None
+  sorts: str | None = None
   period: Period = Period()
   limit: int | None = None
 
 
-def _stringify(fields: set[str]) -> str:
-  return ',\n'.join(fields) if len(fields) > 1 else f'{fields.pop()},\n'
+def _stringify(fields: Sequence[str]) -> str:
+  return ', \n'.join(fields) if len(fields) > 1 else f'{fields[0]}'
 
 
 class BachQuery(base_query.BaseQuery):
   """Interface for all queries."""
+
+  query_template = """
+  SELECT
+    {dimensions},
+    {metrics}
+  FROM {resource}
+  {filters}
+  {sorts}
+  {limit}
+  """
 
   _TODAY = datetime.datetime.today()
   _START_DATE = _TODAY - datetime.timedelta(days=7)
   _END_DATE = _TODAY - datetime.timedelta(days=1)
 
   def __init__(self, parameters: BachQueryParameters | None = None) -> None:
-    self.parameters = parameters or BachQueryParameters()
-    self.default_metrics = 'metrics.clicks AS clicks'
+    self.parameters = parameters
     self.default_dimensions = 'campaign.id AS campaign'
 
   @property
@@ -135,10 +153,29 @@ class BachQuery(base_query.BaseQuery):
     return ''
 
   @property
-  def filters(self) -> str:
-    if filters := self.parameters.filters:
-      return ' AND '.join(filters)
+  def limit(self) -> str:
+    if limit := self.parameters.limit:
+      return f'LIMIT {limit}'
+    return ''
 
+  @property
+  def sorts(self) -> str:
+    if sorts := self.parameters.sorts:
+      return f'ORDER BY {sorts} DESC'
+    return ''
+
+  @property
+  def filters(self) -> str:
+    filter_str = ''
+    dates_str = ''
+    if dates := self.parameters.period:
+      dates_str = f'segments.date BETWEEN {dates}'
+    if filters := self.parameters.filters:
+      filter_str = ' AND '.join(filters)
+    if dates_str:
+      return f'WHERE {dates_str} AND {filter_str}'
+    if filter_str:
+      return f'WHERE {filter_str}'
     return ''
 
   @property
@@ -151,7 +188,15 @@ class BachQuery(base_query.BaseQuery):
 
   @property
   def query_text(self) -> str:
-    return self.base_query_text.format(**self.__dict__)
+    expanded_query = self.query_template.format(
+      metrics=self.metrics,
+      dimensions=self.dimensions,
+      filters=self.filters,
+      limit=self.limit,
+      sorts=self.sorts,
+      resource=self.parameters.resource,
+    )
+    return ' '.join(expanded_query.replace('\n', '').split())
 
   def _build_query_part(self, spec) -> tuple[str, str] | None:
     """Returns metrics and corresponding filters based on a specification."""

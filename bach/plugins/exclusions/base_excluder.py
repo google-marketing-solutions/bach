@@ -16,6 +16,7 @@
 
 """Common functionality for all exclusion plugins."""
 
+import datetime
 import functools
 from collections.abc import Sequence
 from copy import deepcopy
