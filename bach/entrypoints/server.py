@@ -30,7 +30,7 @@ class BachServerSettings(BaseSettings):
   export ENV_VARIABLE_NAME=VALUE.
 
   Attributes:
-    media_tagging_db_url: Connection string to DB with tagging results.
+    google_ads_configuration_file_path: Path to google-ads.yaml.
   """
 
   google_ads_configuration_file_path: str = str(
