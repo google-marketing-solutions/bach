@@ -18,9 +18,13 @@
 import pathlib
 
 import fastapi
+import typer
+import uvicorn
 from pydantic_settings import BaseSettings
 
 import bach
+
+typer_app = typer.Typer()
 
 
 class BachServerSettings(BaseSettings):
@@ -38,13 +42,24 @@ class BachServerSettings(BaseSettings):
   )
 
 
-app = fastapi.FastAPI()
+router = fastapi.APIRouter()
 
 
-@app.post('/')
+@router.post('/')
 def play(
   request: bach.BachRequest,
 ) -> str:
   """Interacts with Bach."""
   bach.Bach().play(request)
   return 'success'
+
+
+@typer_app.command()
+def main(port: int = 8000):
+  app = fastapi.FastAPI()
+  app.include_router(router)
+  uvicorn.run(app, port=port)
+
+
+if __name__ == '__main__':
+  main()
