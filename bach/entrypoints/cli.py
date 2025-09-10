@@ -46,7 +46,7 @@ def run(
   notify: Annotated[
     bool, typer.Option(help='Whether to send notifications')
   ] = False,
-):
+) -> str:
   extra_parameters = garf_utils.ParamsParser(['area', 'notify']).parse(ctx.args)
   request = bach.BachRequest(
     rule=rule,
@@ -56,4 +56,5 @@ def run(
     notify=notify,
     notification_parameters=extra_parameters.get('notify'),
   )
-  bach.Bach().play(request)
+  job = bach.Bach().play(request)
+  print('Started operation %s', job.job_id)

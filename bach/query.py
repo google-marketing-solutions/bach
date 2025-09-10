@@ -111,66 +111,61 @@ class Period(pydantic.BaseModel):
     return f"'{self.start_date}' AND '{self.end_date}'"
 
 
-class BachQueryParameters(pydantic.BaseModel):
+class BachQuery(pydantic.BaseModel):
   resource: str
-  metrics: Sequence[str] | None = None
-  dimensions: Sequence[str] | None = None
-  filters: Sequence[str] | None = None
+  metrics: list[str] | None = pydantic.Field(default_factory=list)
+  filters: list[str] | None = pydantic.Field(default_factory=list)
+  dimensions: list[str] | None = pydantic.Field(default_factory=list)
   sorts: str | None = None
   period: Period = Period()
-  limit: int | None = None
-
-
-def _stringify(fields: Sequence[str]) -> str:
-  return ', \n'.join(fields) if len(fields) > 1 else f'{fields[0]}'
-
-
-class BachQuery(base_query.BaseQuery):
-  """Interface for all queries."""
-
-  query_template = """
-  SELECT
-    {dimensions},
-    {metrics}
-  FROM {resource}
-  {filters}
-  {sorts}
-  {limit}
-  """
-
-  _TODAY = datetime.datetime.today()
-  _START_DATE = _TODAY - datetime.timedelta(days=7)
-  _END_DATE = _TODAY - datetime.timedelta(days=1)
-
-  def __init__(self, parameters: BachQueryParameters | None = None) -> None:
-    self.parameters = parameters
-    self.default_dimensions = 'campaign.id AS campaign'
+  limit: int | None = 0
 
   @property
-  def metrics(self) -> str:
-    if metrics := self.parameters.metrics:
+  def query_text(self) -> str:
+    query_template = """
+    SELECT
+      {dimensions},
+      {metrics}
+    FROM {resource}
+    {filters}
+    {sorts}
+    {limit}
+    """
+    expanded_query = query_template.format(
+      metrics=self.metrics_str,
+      dimensions=self.dimensions_str,
+      filters=self.filters_str,
+      limit=self.limit_str,
+      sorts=self.sorts_str,
+      resource=self.resource,
+    )
+    return ' '.join(expanded_query.replace('\n', '').split())
+
+  @property
+  def metrics_str(self) -> str:
+    if metrics := self.metrics:
       return _stringify(metrics)
     return ''
 
   @property
-  def limit(self) -> str:
-    if limit := self.parameters.limit:
+  def limit_str(self) -> str:
+    if limit := self.limit:
       return f'LIMIT {limit}'
     return ''
 
   @property
-  def sorts(self) -> str:
-    if sorts := self.parameters.sorts:
+  def sorts_str(self) -> str:
+    if sorts := self.sorts:
       return f'ORDER BY {sorts} DESC'
     return ''
 
   @property
-  def filters(self) -> str:
+  def filters_str(self) -> str:
     filter_str = ''
     dates_str = ''
-    if dates := self.parameters.period:
+    if dates := self.period:
       dates_str = f'segments.date BETWEEN {dates}'
-    if filters := self.parameters.filters:
+    if filters := self.filters:
       filter_str = ' AND '.join(filters)
     if dates_str:
       return f'WHERE {dates_str} AND {filter_str}'
@@ -179,84 +174,111 @@ class BachQuery(base_query.BaseQuery):
     return ''
 
   @property
-  def dimensions(self) -> str:
-    if dimensions := self.parameters.dimensions:
+  def dimensions_str(self) -> str:
+    if dimensions := self.dimensions:
       return _stringify(dimensions)
-    if self.parameters.limit:
+    if self.limit:
       return self.default_dimensions + ',\n'
     return ''
 
-  @property
-  def query_text(self) -> str:
-    expanded_query = self.query_template.format(
-      metrics=self.metrics,
-      dimensions=self.dimensions,
-      filters=self.filters,
-      limit=self.limit,
-      sorts=self.sorts,
-      resource=self.parameters.resource,
-    )
-    return ' '.join(expanded_query.replace('\n', '').split())
 
-  def _build_query_part(self, spec) -> tuple[str, str] | None:
-    """Returns metrics and corresponding filters based on a specification."""
-    if spec.name in METRICS:
-      value = (
-        int(float(spec.value) * 1e6) if spec.name == 'cost' else spec.value
-      )
-      name = f'{spec.name}_micros' if spec.name == 'cost' else spec.name
-      return (
-        f'metrics.{name} {spec.operator} {value}',
-        self._build_metric(spec.name),
-      )
-    return None
+def _stringify(fields: Sequence[str]) -> str:
+  return ', \n'.join(fields) if len(fields) > 1 else f'{fields[0]}'
 
-  def _build_metric(self, metric_name: str) -> str:
-    name = (
-      f'{metric_name}_micros / 1e6' if metric_name == 'cost' else metric_name
-    )
-    return f'metrics.{name} AS {metric_name}'
 
-  def build(
-    self,
-    rule: str,
-    limit: int | None = None,
-  ):
-    """Helper method for building query and fetching data from Ads API.
+# class _BachQuery(base_query.BaseQuery):
+#   """Interface for all queries."""
 
-    Args:
-      rule: Specification rule.
-      limit: Whether to fetch all data or only a subset.
+#   query_template = """
+#   SELECT
+#     {dimensions},
+#     {metrics}
+#   FROM {resource}
+#   {filters}
+#   {sorts}
+#   {limit}
+#   """
 
-    Returns:
-      Report containing placement performance data.
-    """
-    metrics: set[str] = set()
-    filters: set[str] = set()
-    dimensions: set[str] = set()
-    if spec := exclusion_specification.ExclusionSpecification.from_expression(
-      rule
-    ):
-      ads_specs = spec.ads_specs_entries.specifications
-      for specs in ads_specs:
-        for spec in specs:
-          if compound_metrics := COMPOUND_METRICS.get(spec.name):
-            for metric in compound_metrics:
-              metrics.add(self._build_metric(metric))
-          elif info := self._build_query_part(spec):
-            ads_filter, ads_metric = info
-            filters.add(ads_filter)
-            metrics.add(ads_metric)
-          elif dimension := DIMENSIONS.get(spec.name):
-            dimensions.add(f'{dimension} AS {spec.name}')
+#   _TODAY = datetime.datetime.today()
+#   _START_DATE = _TODAY - datetime.timedelta(days=7)
+#   _END_DATE = _TODAY - datetime.timedelta(days=1)
 
-    self.__init__(
-      limit=limit,
-      metrics=metrics,
-      filters=filters,
-      dimensions=dimensions,
-    )
-    return str(self)
+#   def __init__(self, parameters: BachQueryParameters | None = None) -> None:
+#     self.parameters = parameters
+#     self.default_dimensions = 'campaign.id AS campaign'
+
+
+#   @property
+#   def query_text(self) -> str:
+#     expanded_query = self.query_template.format(
+#       metrics=self.metrics,
+#       dimensions=self.dimensions,
+#       filters=self.filters,
+#       limit=self.limit,
+#       sorts=self.sorts,
+#       resource=self.parameters.resource,
+#     )
+#     return ' '.join(expanded_query.replace('\n', '').split())
+
+#   def _build_query_part(self, spec) -> tuple[str, str] | None:
+#     """Returns metrics and corresponding filters based on a specification."""
+#     if spec.name in METRICS:
+#       value = (
+#         int(float(spec.value) * 1e6) if spec.name == 'cost' else spec.value
+#       )
+#       name = f'{spec.name}_micros' if spec.name == 'cost' else spec.name
+#       return (
+#         f'metrics.{name} {spec.operator} {value}',
+#         self._build_metric(spec.name),
+#       )
+#     return None
+
+#   def _build_metric(self, metric_name: str) -> str:
+#     name = (
+#       f'{metric_name}_micros / 1e6' if metric_name == 'cost' else metric_name
+#     )
+#     return f'metrics.{name} AS {metric_name}'
+
+#   def build(
+#     self,
+#     rule: str,
+#     limit: int | None = None,
+#   ):
+#     """Helper method for building query and fetching data from Ads API.
+
+#     Args:
+#       rule: Specification rule.
+#       limit: Whether to fetch all data or only a subset.
+
+#     Returns:
+#       Report containing placement performance data.
+#     """
+#     metrics: set[str] = set()
+#     filters: set[str] = set()
+#     dimensions: set[str] = set()
+#     if spec := exclusion_specification.ExclusionSpecification.from_expression(
+#       rule
+#     ):
+#       ads_specs = spec.ads_specs_entries.specifications
+#       for specs in ads_specs:
+#         for spec in specs:
+#           if compound_metrics := COMPOUND_METRICS.get(spec.name):
+#             for metric in compound_metrics:
+#               metrics.add(self._build_metric(metric))
+#           elif info := self._build_query_part(spec):
+#             ads_filter, ads_metric = info
+#             filters.add(ads_filter)
+#             metrics.add(ads_metric)
+#           elif dimension := DIMENSIONS.get(spec.name):
+#             dimensions.add(f'{dimension} AS {spec.name}')
+
+#     self.__init__(
+#       limit=limit,
+#       metrics=metrics,
+#       filters=filters,
+#       dimensions=dimensions,
+#     )
+#     return str(self)
 
 
 DEFAULT_QUERIES: dict[str, str] = {

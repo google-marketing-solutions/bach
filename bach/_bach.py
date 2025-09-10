@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Sequence
 
 import gaarf
@@ -47,7 +48,11 @@ class BachRequest(pydantic.BaseModel):
 
 
 class BachOperationResponse(pydantic.BaseModel):
-  job_id: str
+  job_id: str = pydantic.Field(default_factory=lambda: uuid.uuid4().hex)
+
+  @property
+  def result(self) -> str:
+    return self.job_id
 
 
 class Bach:
@@ -97,7 +102,7 @@ class Bach:
     else:
       self.add_notify()
     self.run()
-    return BachOperationResponse(job_id='')
+    return BachOperationResponse()
 
   def run(self) -> None:
     self.fetch().apply().action().notify()

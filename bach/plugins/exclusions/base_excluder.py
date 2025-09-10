@@ -16,14 +16,14 @@
 
 """Common functionality for all exclusion plugins."""
 
-import datetime
 import functools
 from collections.abc import Sequence
 from copy import deepcopy
 
 from garf_core import report as garf_report
 
-from bach import api_actors, query
+from bach import api_actors
+from bach.query import BachQuery
 
 
 class BaseExclusionHandler(api_actors.OperationHandler):
@@ -144,35 +144,3 @@ class BaseExclusionActor(api_actors.Actor):
         customer_id=row.customer_id, operation=operation
       ),
     )
-
-
-class ExcludableEntity(query.BachQuery):
-  """Specifies fields that form an entity that can be excluded.
-
-  Attributes:
-    base_query_text:
-      A Garf query text template that contains aliases specified
-      in `required_fields`.
-
-  Raises:
-    ValueError:
-      If subclass base_query_text does not contain all required fields.
-  """
-
-  base_query_text = ''
-
-  def __init_subclass__(cls) -> None:
-    required_fields = (
-      'customer_id',
-      'campaign_id',
-      'ad_group_id',
-    )
-    super().__init_subclass__()
-    missing_fields: list[str] = []
-    missing_fields = [
-      field for field in required_fields if field not in cls.base_query_text
-    ]
-    if missing_fields:
-      raise ValueError(
-        'query_text does not contain required fields: ' f'{missing_fields}'
-      )
