@@ -17,37 +17,126 @@ from bach import query
 
 
 class TestBachQuery:
-  def test_init_returns_empty_attributes(self):
-    test_query = query.BachQuery()
-
-    assert test_query.metrics == ''
-    assert test_query.dimensions == ''
-    assert test_query.filters == ''
-
-  def test_init_returns_nonempty_attributes(self):
+  def test_init_returns_without_filters(self):
     parameters = query.BachQueryParameters(
-      metrics={
+      resource='campaign',
+      metrics=[
         'metrics.clicks AS clicks',
-      },
-      dimensions={
+      ],
+      dimensions=[
         'campaign.id AS campaign_id',
-      },
-      filters={
-        'metrics.clicks > 0',
-      },
+      ],
     )
     test_query = query.BachQuery(parameters)
 
-    assert test_query.metrics == 'metrics.clicks AS clicks,\n'
-    assert test_query.dimensions == 'campaign.id AS campaign_id,\n'
-    assert test_query.filters == 'metrics.clicks > 0'
+    assert test_query.query_text == (
+      'SELECT campaign.id AS campaign_id, metrics.clicks AS clicks '
+      'FROM campaign'
+    )
 
-  def test_init_returns_default_attributes(self):
+  def test_init_returns_nonempty_attributes(self):
     parameters = query.BachQueryParameters(
+      resource='campaign',
+      metrics=[
+        'metrics.clicks AS clicks',
+      ],
+      dimensions=[
+        'campaign.id AS campaign_id',
+      ],
+      filters=[
+        'metrics.clicks > 0',
+      ],
+    )
+    test_query = query.BachQuery(parameters)
+
+    assert test_query.query_text == (
+      'SELECT campaign.id AS campaign_id, metrics.clicks AS clicks '
+      'FROM campaign WHERE metrics.clicks > 0'
+    )
+
+  def test_init_returns_multiple_attributes(self):
+    parameters = query.BachQueryParameters(
+      resource='campaign',
+      metrics=[
+        'metrics.clicks AS clicks',
+        'metrics.impressions AS impressions',
+      ],
+      dimensions=[
+        'campaign.id AS campaign_id',
+        'segments.date AS date',
+      ],
+      filters=[
+        'metrics.clicks > 0',
+        'metrics.impressions > 10',
+      ],
       limit=10,
     )
     test_query = query.BachQuery(parameters)
 
-    assert test_query.dimensions == 'campaign.id AS campaign,\n'
-    assert test_query.metrics == ''
-    assert test_query.filters == ''
+    assert test_query.query_text == (
+      'SELECT campaign.id AS campaign_id, segments.date AS date, '
+      'metrics.clicks AS clicks, metrics.impressions AS impressions '
+      'FROM campaign '
+      'WHERE metrics.clicks > 0 AND metrics.impressions > 10 '
+      'LIMIT 10'
+    )
+
+  def test_init_returns_multiple_attributes_with_period(self):
+    parameters = query.BachQueryParameters(
+      resource='campaign',
+      metrics=[
+        'metrics.clicks AS clicks',
+        'metrics.impressions AS impressions',
+      ],
+      dimensions=[
+        'campaign.id AS campaign_id',
+        'segments.date AS date',
+      ],
+      filters=[
+        'metrics.clicks > 0',
+        'metrics.impressions > 10',
+      ],
+      period={'start_date': '2025-01-01', 'end_date': '2025-01-31'},
+      limit=10,
+    )
+    test_query = query.BachQuery(parameters)
+
+    assert test_query.query_text == (
+      'SELECT campaign.id AS campaign_id, segments.date AS date, '
+      'metrics.clicks AS clicks, metrics.impressions AS impressions '
+      'FROM campaign '
+      "WHERE segments.date BETWEEN '2025-01-01' AND '2025-01-31' "
+      'AND metrics.clicks > 0 AND metrics.impressions > 10 '
+      'LIMIT 10'
+    )
+
+  def test_init_returns_multiple_attributes_with_sorts(self):
+    parameters = query.BachQueryParameters(
+      resource='campaign',
+      metrics=[
+        'metrics.clicks AS clicks',
+        'metrics.impressions AS impressions',
+      ],
+      dimensions=[
+        'campaign.id AS campaign_id',
+        'segments.date AS date',
+      ],
+      filters=[
+        'metrics.clicks > 0',
+        'metrics.impressions > 10',
+      ],
+      period={'start_date': '2025-01-01', 'end_date': '2025-01-31'},
+      sorts='metrics.clicks',
+      limit=10,
+    )
+    test_query = query.BachQuery(parameters)
+
+    assert test_query.query_text == (
+      'SELECT campaign.id AS campaign_id, segments.date AS date, '
+      'metrics.clicks AS clicks, metrics.impressions AS impressions '
+      'FROM campaign '
+      "WHERE segments.date BETWEEN '2025-01-01' AND '2025-01-31' "
+      'AND metrics.clicks > 0 AND metrics.impressions > 10 '
+      'ORDER BY metrics.clicks DESC '
+      'LIMIT 10'
+    )
