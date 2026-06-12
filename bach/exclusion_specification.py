@@ -29,7 +29,7 @@ import math
 import re
 from collections.abc import Sequence
 
-from garf_core import report
+from garf.core import report
 
 from bach import rules_parser
 

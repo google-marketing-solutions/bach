@@ -19,7 +19,7 @@
 from typing import ClassVar
 
 import pydantic
-from garf_core import report as garf_report
+from garf.core import report as garf_report
 
 from bach.plugins.exclusions import base_excluder
 from bach.query import BachQuery, Period

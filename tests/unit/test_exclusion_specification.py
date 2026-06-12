@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
-from garf_core import report as garf_report
+from garf.core import report as garf_report
 
 from bach import exclusion_specification, rules_parser
 

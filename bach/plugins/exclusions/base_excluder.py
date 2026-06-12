@@ -20,7 +20,7 @@ import functools
 from collections.abc import Sequence
 from copy import deepcopy
 
-from garf_core import report as garf_report
+from garf.core import report as garf_report
 
 from bach import api_actors
 from bach.query import BachQuery

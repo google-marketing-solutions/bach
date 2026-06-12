@@ -7,16 +7,18 @@ name = "bach-googleads"
 description = "Manages tasks in Google Ads"
 authors = [
   {name = "Google Inc. (gTech gPS CSE team)", email = "no-reply@google.com"},
+  {name = "Andrei Markin", email = "amarkin@google.com"},
 ]
 license = {text = "Apache 2.0"}
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-  "google-ads-api-report-fetcher[pandas]",
+  "garf-google-ads",
   "croniter",
   "garf_executors",
-  "garf_youtube_data_api",
+  "garf_youtube",
   "pydantic",
+  "typing-extensions",
   "typer",
 ]
 classifiers = [
@@ -24,6 +26,7 @@ classifiers = [
   "Programming Language :: Python"
 ]
 dynamic = ["version"]
+
 [project.optional-dependencies]
 persist = [
   "sqlalchemy>2",
@@ -31,19 +34,20 @@ persist = [
 server = [
   "fastapi[standard]",
 ]
+test =  [
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+]
 all = [
   "bach[persist,server]"
 ]
+
 [project.entry-points.bach_actors]
 placement_performance = "bach.plugins.exclusions.placement_excluder"
 search_term_performance = "bach.plugins.exclusions.keyword_excluder"
 keyword_performance = "bach.plugins.exclusions.keyword_excluder"
 
-[options.extras_require]
-test =  [
-  "pytest",
-  "pytest-cov"
-]
 [tool.pytest.ini_options]
 testpaths = [
   "tests",

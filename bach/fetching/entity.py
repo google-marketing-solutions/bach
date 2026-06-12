@@ -24,7 +24,7 @@ contain required fields.
 
 from __future__ import annotations
 
-from gaarf import base_query
+from garf.core import base_query
 
 
 class ExcludableEntity(base_query.BaseQuery):
