@@ -17,8 +17,8 @@
 from collections.abc import Sequence
 from typing import Callable, Final
 
-import garf_core
-import garf_youtube_data_api
+import garf.community.google.youtube as garf_youtube
+import garf.core
 
 VIDEOS_QUERY: Final[str] = """
 SELECT
@@ -40,7 +40,7 @@ FROM channels
 
 def get_video_info(
   placements: Sequence[str], **kwargs: str
-) -> dict[str, garf_core.report.GarfRow]:
+) -> dict[str, garf.core.report.GarfRow]:
   entities = []
   for row in placements:
     for key, value in kwargs.items():
@@ -48,8 +48,8 @@ def get_video_info(
         entities.append(row.placement)
   if not entities:
     return {}
-  results = garf_youtube_data_api.YouTubeDataApiReportFetcher(
-    garf_youtube_data_api.YouTubeDataApiClient()
+  results = garf_youtube.YouTubeDataApiReportFetcher(
+    garf_youtube.YouTubeDataApiClient()
   ).fetch(VIDEOS_QUERY, id=placements)
   output = {}
   for row in results:
@@ -77,7 +77,7 @@ FROM channels
 
 def get_channel_info(
   placements: Sequence[str], **kwargs: str
-) -> dict[str, garf_core.report.GarfRow]:
+) -> dict[str, garf.core.report.GarfRow]:
   entities = []
   for row in placements:
     for key, value in kwargs.items():
@@ -85,8 +85,8 @@ def get_channel_info(
         entities.append(row.placement)
   if not entities:
     return {}
-  results = garf_youtube_data_api.YouTubeDataApiReportFetcher(
-    garf_youtube_data_api.YouTubeDataApiClient()
+  results = garf_youtube.YouTubeDataApiReportFetcher(
+    garf_youtube.YouTubeDataApiClient()
   ).fetch(CHANNELS_QUERY, id=entities)
   output = {}
   for row in results:

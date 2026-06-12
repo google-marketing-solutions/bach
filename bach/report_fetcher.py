@@ -17,10 +17,10 @@
 import abc
 from collections.abc import Sequence
 
-import gaarf
+import garf.core
 
 
 class Fetcher(abc.ABC):
   @abc.abstractmethod
-  def fetch(self, accounts: Sequence[str]) -> gaarf.GaarfReport:
+  def fetch(self, accounts: Sequence[str]) -> garf.core.report.GarfReport:
     """Base method for fetching reports."""

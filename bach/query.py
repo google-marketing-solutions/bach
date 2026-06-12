@@ -18,7 +18,7 @@ import datetime
 from typing import Sequence
 
 import pydantic
-from garf_core import base_query
+from garf.core import base_query
 
 from bach import exclusion_specification
 

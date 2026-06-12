@@ -19,7 +19,8 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 
-import gaarf
+import garf.community.google.ads as garf_ads
+import garf.core
 import pydantic
 from typing_extensions import Self
 
@@ -112,7 +113,7 @@ class Bach:
     return self
 
   def with_actor(self, actor: api_actors.Actor, /, **kwargs: str) -> Self:
-    client = gaarf.GoogleAdsApiClient().client
+    client = garf_ads.GoogleAdsApiClient().client
     self.actor = actor(client, **kwargs)
     return self
 
@@ -150,8 +151,8 @@ class Bach:
   def fetch(self, query: str | None = None, **kwargs: str) -> Self:
     if self._fetcher:
       return self._fetcher.fetch(self._accounts)
-    self._report = gaarf.AdsReportFetcher(
-      api_client=gaarf.GoogleAdsApiClient()
+    self._report = garf_ads.AdsReportFetcher(
+      api_client=garf_ads.GoogleAdsApiClient()
     ).fetch(
       query_specification=query or self._query,
       customer_ids=self._accounts,
@@ -166,7 +167,7 @@ class Bach:
     )
     return self
 
-  def apply_to(self, report: gaarf.report.GaarfReport) -> Self:
+  def apply_to(self, report: garf.core.report.GarfReport) -> Self:
     if not self._rules:
       self._matching_report = report
     spec = exclusion_specification.ExclusionSpecification.from_expression(

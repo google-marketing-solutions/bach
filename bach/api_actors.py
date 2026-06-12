@@ -21,7 +21,7 @@ import logging
 from collections.abc import Sequence
 
 import tenacity
-from garf_core import report as garf_report
+from garf.core import report as garf_report
 from google.api_core import exceptions as google_api_exceptions
 
 
