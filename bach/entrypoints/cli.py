@@ -20,15 +20,28 @@ import sys
 
 import typer
 from garf_executors.entrypoints import utils as garf_utils
+from opentelemetry import trace
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from typing_extensions import Annotated
 
 import bach
+from bach.entrypoints.tracer import (
+  initialize_logger,
+  initialize_tracer,
+)
+from bach.telemetry import tracer
 
+LoggingInstrumentor().instrument(set_logging_format=False)
+initialize_tracer()
+initialize_logger()
 typer_app = typer.Typer()
 
 
 @typer_app.command()
+@tracer.start_as_current_span('bach.cli.version')
 def version() -> str:
+  span = trace.get_current_span()
+  span.set_attribute('version', bach.__version__)
   print(f'Bach version: {bach.__version__}')
   sys.exit()
 
@@ -36,6 +49,7 @@ def version() -> str:
 @typer_app.command(
   context_settings={'allow_extra_args': True, 'ignore_unknown_options': True}
 )
+@tracer.start_as_current_span('bach.cli.run')
 def run(
   ctx: typer.Context,
   area: Annotated[str, typer.Option(help='Type of Bach task to run')],
@@ -47,6 +61,7 @@ def run(
     bool, typer.Option(help='Whether to send notifications')
   ] = False,
 ) -> str:
+  span = trace.get_current_span()
   extra_parameters = garf_utils.ParamsParser(['area', 'notify']).parse(ctx.args)
   request = bach.BachRequest(
     rule=rule,
