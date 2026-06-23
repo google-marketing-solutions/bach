@@ -1,0 +1,12 @@
+steps:
+  - alias: task
+    fetcher: fake
+    fetcher_parameters:
+      n_rows: 10
+    queries:
+      - text: |
+          SELECT
+            dimension.string AS field,
+            metric.int AS value
+          FROM fake
+        title: fake
